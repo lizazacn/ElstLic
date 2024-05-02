@@ -1,4 +1,4 @@
-package main
+package ElstLic
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-func main() {
+func Main() {
 	var client = Client.Client{
 		Offset:  3,
 		Step:    2,
