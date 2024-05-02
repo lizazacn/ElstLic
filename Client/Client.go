@@ -1,13 +1,13 @@
 package Client
 
 import (
-	"ElstLic/Entity"
-	"ElstLic/Utils"
-	"ElstLic/Utils/GM"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/lizazacn/ElstLic/Entity"
+	"github.com/lizazacn/ElstLic/Utils"
+	"github.com/lizazacn/ElstLic/Utils/GM"
 	"github.com/manifoldco/promptui"
 	"log"
 	"math/rand"

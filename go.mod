@@ -1,4 +1,4 @@
-module ElstLic
+module github.com/lizazacn/ElstLic
 
 go 1.19
 

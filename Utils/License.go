@@ -1,9 +1,9 @@
 package Utils
 
 import (
-	"ElstLic/Entity"
-	"ElstLic/Utils/GM"
 	"encoding/json"
+	"github.com/lizazacn/ElstLic/Entity"
+	"github.com/lizazacn/ElstLic/Utils/GM"
 	"net"
 	"os/exec"
 	"regexp"

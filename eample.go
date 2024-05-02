@@ -1,9 +1,9 @@
 package main
 
 import (
-	"ElstLic/Client"
-	"ElstLic/Server"
 	"fmt"
+	"github.com/lizazacn/ElstLic/Client"
+	"github.com/lizazacn/ElstLic/Server"
 	"github.com/manifoldco/promptui"
 )
 
