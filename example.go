@@ -7,7 +7,7 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-func Main() {
+func main() {
 	var client = Client.Client{
 		Offset:  3,
 		Step:    2,
