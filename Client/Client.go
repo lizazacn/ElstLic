@@ -22,6 +22,8 @@ type Client struct {
 	DevInfo string
 }
 
+type Lic func() bool
+
 // CreateNodeInfoFile 创建节点信息文件
 func (c *Client) CreateNodeInfoFile() error {
 	if c.Offset == 0 {
@@ -184,12 +186,12 @@ func (c *Client) DecryptDataFromFile(path ...string) (*Entity.License, error) {
 }
 
 // EnableLicCheck 启动Lic证书校验
-func (c *Client) EnableLicCheck() {
-	go c.licCheck(time.Now())
+func (c *Client) EnableLicCheck(lic Lic) {
+	go c.licCheck(time.Now(), lic)
 }
 
 // licCheck Lic证书校验
-func (c *Client) licCheck(lastRunTime time.Time) {
+func (c *Client) licCheck(lastRunTime time.Time, lic Lic) {
 	for true {
 		rand.Seed(time.Now().UnixNano())
 		var randomInt = rand.Intn(240)
@@ -198,6 +200,10 @@ func (c *Client) licCheck(lastRunTime time.Time) {
 		var now = time.Now()
 		if now.Sub(lastRunTime).Minutes()-float64(sleepTime) >= 30 {
 			log.Println("请勿随意修改系统时间，否则会影响License授权！")
+			os.Exit(0)
+		}
+		status := lic()
+		if !status {
 			os.Exit(0)
 		}
 		lastRunTime = now
