@@ -53,8 +53,8 @@ func AddKeyToGMCipher(ciphertext, key []byte, offset, step int) []byte {
 	return ciphertext
 }
 
-// GetLinuxMotherBoardUUID 获取Linux主板UUID
-func GetLinuxMotherBoardUUID() string {
+// GetLinuxMotherBoardID 获取Linux主板ID
+func GetLinuxMotherBoardID() string {
 	cmd := exec.Command("dmidecode", "-t", "system")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
@@ -73,8 +73,8 @@ func GetLinuxMotherBoardUUID() string {
 	return uuid
 }
 
-// GetWinMotherBoardUUID 获取Windows主板ID
-func GetWinMotherBoardUUID() string {
+// GetWinMotherBoardID 获取Windows主板ID
+func GetWinMotherBoardID() string {
 	cmd := exec.Command("wmic", "baseboard", "get", "SerialNumber")
 	result, err := cmd.CombinedOutput()
 	if err != nil {
@@ -104,4 +104,24 @@ func GetAllNetCardInfo() []Entity.NetCard {
 		})
 	}
 	return result
+}
+
+// GetAllNetCardInfoByName 根据网卡名获取网卡信息
+func GetAllNetCardInfoByName(netCardName string) (*Entity.NetCard, error) {
+	var result = new(Entity.NetCard)
+	interfaces, err := net.InterfaceByName(netCardName)
+	if err != nil {
+		return nil, err
+	}
+
+	result.Name = interfaces.Name
+	result.MAC = interfaces.HardwareAddr.String()
+	addrs, err := interfaces.Addrs()
+	if err != nil {
+		return result, nil
+	}
+	if len(addrs) > 0 {
+		result.IP = addrs[0].String()
+	}
+	return result, nil
 }

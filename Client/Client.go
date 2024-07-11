@@ -3,7 +3,6 @@ package Client
 import (
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/lizazacn/ElstLic/Entity"
 	"github.com/lizazacn/ElstLic/Utils"
@@ -20,6 +19,7 @@ type Client struct {
 	Offset  int
 	Step    int
 	DevInfo string
+	licPath string
 }
 
 type Lic func() bool
@@ -47,14 +47,14 @@ func (c *Client) createLicData() (*Entity.License, error) {
 	// 根据系统类型生成主板ID
 	switch runtime.GOOS {
 	case "linux":
-		lic.MotherBoardUUID = Utils.GetLinuxMotherBoardUUID()
+		lic.MotherBoardID = Utils.GetLinuxMotherBoardID()
 	case "windows":
-		lic.MotherBoardUUID = Utils.GetWinMotherBoardUUID()
+		lic.MotherBoardID = Utils.GetWinMotherBoardID()
 	default:
-		lic.MotherBoardUUID = ""
+		lic.MotherBoardID = ""
 	}
 
-	if lic.MotherBoardUUID == "" {
+	if lic.MotherBoardID == "" {
 		return nil, errors.New("未获取到主板ID")
 	}
 	var netCards = Utils.GetAllNetCardInfo()
@@ -79,7 +79,7 @@ func (c *Client) createLicData() (*Entity.License, error) {
 	return lic, err
 }
 
-// EncryptDataToFile 加密数据到文件
+// encryptDataToFile 加密数据到文件
 func (c *Client) encryptDataToFile(lic *Entity.License) error {
 	var path = "./"
 	prompt := promptui.Prompt{
@@ -131,6 +131,39 @@ func (c *Client) encryptDataToFile(lic *Entity.License) error {
 	return nil
 }
 
+// encryptDataToLicFile 加密数据到认证文件
+func (c *Client) encryptDataToLicFile(lic *Entity.License, licPath string) error {
+	file, err := os.OpenFile(licPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	licByte, err := json.Marshal(lic)
+	if err != nil {
+		return err
+	}
+	lic.CheckCode = GM.SM3SUM(string(licByte))
+
+	licByte, err = json.Marshal(lic)
+	if err != nil {
+		return err
+	}
+	var key = lic.CheckCode[:16]
+	encrypt, err := GM.SM4Encrypt(licByte, []byte(key), []byte(key))
+	if err != nil {
+		return err
+	}
+	encrypt = Utils.AddKeyToGMCipher(encrypt, []byte(key), c.Offset, c.Step)
+	_, err = file.Write(encrypt)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // DecryptDataFromFile 解密License文件
 func (c *Client) DecryptDataFromFile(path ...string) (*Entity.License, error) {
 	if c.Offset == 0 {
@@ -142,10 +175,6 @@ func (c *Client) DecryptDataFromFile(path ...string) (*Entity.License, error) {
 	var licPath string
 	if len(path) >= 1 && path[0] != "" {
 		licPath = path[0]
-	} else {
-		inPutFile := flag.String("l", "", "请指定license.lic文件路径")
-		flag.Parse()
-		licPath = *inPutFile
 	}
 	if licPath == "" {
 		prompt := promptui.Prompt{
@@ -190,6 +219,12 @@ func (c *Client) EnableLicCheck(lic Lic) {
 	go c.licCheck(time.Now(), lic)
 }
 
+// EnableDefaultLicCheck 启动默认Lic证书校验机制
+func (c *Client) EnableDefaultLicCheck(licPath string) {
+	c.licPath = licPath
+	go c.licCheck(time.Now(), c.DefaultLic)
+}
+
 // licCheck Lic证书校验
 func (c *Client) licCheck(lastRunTime time.Time, lic Lic) {
 	for true {
@@ -208,4 +243,72 @@ func (c *Client) licCheck(lastRunTime time.Time, lic Lic) {
 		}
 		lastRunTime = now
 	}
+}
+
+// DefaultLic 默认证书校验规则
+func (c *Client) DefaultLic() bool {
+	license, err := c.DecryptDataFromFile(c.licPath)
+	if err != nil {
+		log.Println(err.Error())
+		return false
+	}
+
+	// 获取主板ID
+	var motherBoardID string
+	switch runtime.GOOS {
+	case "linux":
+		motherBoardID = Utils.GetLinuxMotherBoardID()
+	case "windows":
+		motherBoardID = Utils.GetWinMotherBoardID()
+	default:
+		log.Println("未识别到主板ID")
+		return false
+	}
+
+	// 验证主板ID是否一致
+	if motherBoardID != license.MotherBoardID {
+		log.Println("主板ID比对异常，请检查是否使用了正确的license文件")
+		return false
+	}
+
+	// 验证系统license是否过期
+	var now = time.Now()
+	startAt, err := time.ParseInLocation("2006-01-02T15:04:05", license.StartTime, time.Local)
+	if err != nil {
+		log.Println("解析时间异常，疑似数据被篡改！")
+		return false
+	}
+
+	if now.Before(startAt) {
+		log.Println("证书不在有效期！")
+		return false
+	}
+	endAt, err := time.ParseInLocation("2006-01-02T15:04:05", license.EndTime, time.Local)
+	if err != nil {
+		log.Println("解析时间异常，疑似数据被篡改！")
+		return false
+	}
+	//endAt = now.AddDate(100, 0, 0)
+	if now.After(endAt) {
+		log.Println("证书已过期，请联系销售人员重新获取授权！")
+		return false
+	}
+	return true
+}
+
+// RegisterNodeToLicense 注册新节点
+func (c *Client) RegisterNodeToLicense(info *Entity.NodeInfo, licPath string) error {
+	license, err := c.DecryptDataFromFile(licPath)
+	if err != nil {
+		return err
+	}
+	if license.UseNodes >= license.AllowNodes {
+		return errors.New("超出允许的节点范围，请联系产品供应商扩容许可")
+	}
+
+	if license.NodeList == nil {
+		license.NodeList = make([]*Entity.NodeInfo, 0)
+	}
+	license.NodeList = append(license.NodeList, info)
+	return c.encryptDataToLicFile(license, licPath)
 }

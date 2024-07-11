@@ -1,4 +1,4 @@
-package ElstLic
+package main
 
 import (
 	"fmt"
@@ -10,13 +10,13 @@ import (
 func main() {
 	var client = Client.Client{
 		Offset:  3,
-		Step:    2,
-		DevInfo: "ElstLic",
+		Step:    3,
+		DevInfo: "www.elst.dev",
 	}
 	var server = Server.Server{
 		Offset:  3,
-		Step:    2,
-		DevInfo: "ElstLic",
+		Step:    3,
+		DevInfo: "www.elst.dev",
 	}
 
 	// 选择执行的操作
@@ -43,6 +43,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
+		fmt.Println("############生成授权数据完成############")
 		fmt.Println("###############授权信息###############")
 		license, err := client.DecryptDataFromFile()
 		if err != nil {
