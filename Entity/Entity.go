@@ -23,6 +23,7 @@ type NodeInfo struct {
 	NodeName          string `json:"node_name"`            // 节点名
 	NodeMac           string `json:"node_mac"`             // 节点MAC地址
 	NodeMotherBoardID string `json:"node_mother_board_id"` // 节点主板ID
+	//CheckCode         string `json:"check_code"`           // 校验码
 }
 
 // NetCard 网卡详细信息

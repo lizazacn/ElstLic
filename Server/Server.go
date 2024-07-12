@@ -21,6 +21,48 @@ type Server struct {
 	DevInfo string
 }
 
+// ShowLicFile 显示Lic认证文件
+func (s *Server) ShowLicFile() error {
+	prompt := promptui.Prompt{
+		Label:   "请输入license.lic文件路径",
+		Default: "./license.lic",
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
+		return err
+	}
+	ciphertext, err := os.ReadFile(result)
+	if err != nil {
+		return err
+	}
+	cipher, key := Utils.GetGMCipherAndKey(ciphertext, s.Offset, s.Step)
+	decrypt, err := GM.SM4Decrypt(cipher, key, key)
+	if err != nil {
+		return err
+	}
+	var lic = new(Entity.License)
+	err = json.Unmarshal(decrypt, lic)
+	if err != nil {
+		return err
+	}
+	stat, err := Utils.CheckData(lic)
+	if err != nil {
+		return err
+	}
+	if !stat {
+		return errors.New(fmt.Sprintf("数据疑似被篡改，请联系:%s！", s.DevInfo))
+	}
+	// 回显License信息
+	fmt.Println("###############授权信息###############")
+	licJson, err := json.MarshalIndent(lic, "", "    ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(licJson))
+	return nil
+}
+
 // CreateLicFile 创建license授权文件
 func (s *Server) CreateLicFile() error {
 	if s.Offset == 0 {

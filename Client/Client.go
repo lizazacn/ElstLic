@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lizazacn/ElstLic/Entity"
+	"github.com/lizazacn/ElstLic/Global"
 	"github.com/lizazacn/ElstLic/Utils"
 	"github.com/lizazacn/ElstLic/Utils/GM"
 	"github.com/manifoldco/promptui"
@@ -147,6 +148,14 @@ func (c *Client) encryptDataToLicFile(lic *Entity.License, licPath string) error
 	}
 	lic.CheckCode = GM.SM3SUM(string(licByte))
 
+	if Global.Lic == nil {
+		Global.Lic = lic
+	}
+
+	if Global.Lic.CheckCode != lic.CheckCode {
+		*Global.Lic = *lic
+	}
+
 	licByte, err = json.Marshal(lic)
 	if err != nil {
 		return err
@@ -210,6 +219,13 @@ func (c *Client) DecryptDataFromFile(path ...string) (*Entity.License, error) {
 	}
 	if !stat {
 		return nil, errors.New(fmt.Sprintf("数据疑似被篡改，请联系:%s！", c.DevInfo))
+	}
+	if Global.Lic == nil {
+		Global.Lic = lic
+	}
+
+	if Global.Lic.CheckCode != lic.CheckCode {
+		*Global.Lic = *lic
 	}
 	return lic, nil
 }
@@ -305,10 +321,30 @@ func (c *Client) RegisterNodeToLicense(info *Entity.NodeInfo, licPath string) er
 	if license.UseNodes >= license.AllowNodes {
 		return errors.New("超出允许的节点范围，请联系产品供应商扩容许可")
 	}
-
 	if license.NodeList == nil {
 		license.NodeList = make([]*Entity.NodeInfo, 0)
 	}
 	license.NodeList = append(license.NodeList, info)
 	return c.encryptDataToLicFile(license, licPath)
+}
+
+// CheckNode 节点验证
+func (c *Client) CheckNode(info *Entity.NodeInfo) (bool, error) {
+	if Global.Lic == nil {
+		license, err := c.DecryptDataFromFile(c.licPath)
+		if err != nil {
+			return false, err
+		}
+		Global.Lic = license
+	}
+
+	if Global.Lic.NodeList == nil {
+		return false, errors.New("系统暂未注册节点！")
+	}
+	for _, node := range Global.Lic.NodeList {
+		if node.NodeMotherBoardID == info.NodeMotherBoardID {
+			return true, nil
+		}
+	}
+	return false, errors.New("当前节点未注册！")
 }
