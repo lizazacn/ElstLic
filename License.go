@@ -1,4 +1,4 @@
-package main
+package ElstLic
 
 import (
 	"github.com/lizazacn/ElstLic/Client"
