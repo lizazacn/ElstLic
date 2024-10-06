@@ -1,5 +1,7 @@
 package Entity
 
+import "time"
+
 // License 授权信息列表 包括：授权起始时间、授权到期时间、允许节点数量、MAC地址列表、主板ID
 type License struct {
 	StartTime         string      `json:"start_time"`          // 开始时间，格式为：YYYY-MM-ddTHH:mm:SS
@@ -14,6 +16,8 @@ type License struct {
 	CustomerTag       string      `json:"customer_tag"`        // 客户标记
 	ModelRoute        string      `json:"model_route"`         // 模块路由Prefix
 	CheckCode         string      `json:"check_code"`          // 校验码
+	LastCheckTime     time.Time   `json:"last_check_time"`     // 最后一次校验时间
+	CheckStatus       bool        `json:"check_status"`        // 校验状态
 	NodeList          []*NodeInfo `json:"node_list"`           // 节点列表
 }
 

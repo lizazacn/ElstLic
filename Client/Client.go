@@ -16,10 +16,12 @@ import (
 )
 
 type Client struct {
-	Offset  int
-	Step    int
-	DevInfo string
-	licPath string
+	Offset      int
+	Step        int
+	DevInfo     string          // 开发信息
+	licPath     string          // lic证书路径
+	CheckStatus bool            // 校验状态
+	License     *Entity.License // 证书文件
 }
 
 type Lic func() bool
@@ -190,6 +192,7 @@ func (c *Client) DecryptDataFromFile(path ...string) (*Entity.License, error) {
 			licPath = result
 		}
 	}
+	c.licPath = licPath
 	ciphertext, err := os.ReadFile(licPath)
 	if err != nil {
 		return nil, err
@@ -211,6 +214,7 @@ func (c *Client) DecryptDataFromFile(path ...string) (*Entity.License, error) {
 	if !stat {
 		return nil, errors.New(fmt.Sprintf("数据疑似被篡改，请联系:%s！", c.DevInfo))
 	}
+	c.License = lic
 	return lic, nil
 }
 
@@ -233,7 +237,13 @@ func (c *Client) licCheck(lastRunTime time.Time, lic Lic) {
 		var sleepTime = randomInt * 6
 		time.Sleep(time.Duration(sleepTime) * time.Minute)
 		var now = time.Now()
+		if c.License.LastCheckTime.After(now) {
+			c.CheckStatus = false
+			log.Println("请勿随意修改系统时间，否则会影响License授权！")
+			os.Exit(0)
+		}
 		if now.Sub(lastRunTime).Minutes()-float64(sleepTime) >= 30 {
+			c.CheckStatus = false
 			log.Println("请勿随意修改系统时间，否则会影响License授权！")
 			os.Exit(0)
 		}
@@ -242,6 +252,11 @@ func (c *Client) licCheck(lastRunTime time.Time, lic Lic) {
 			os.Exit(0)
 		}
 		lastRunTime = now
+		c.License.LastCheckTime = now
+		err := c.encryptDataToLicFile(c.License, c.licPath)
+		if err != nil {
+			return
+		}
 	}
 }
 
@@ -298,6 +313,9 @@ func (c *Client) DefaultLic() bool {
 
 // RegisterNodeToLicense 注册新节点
 func (c *Client) RegisterNodeToLicense(info *Entity.NodeInfo, licPath string) error {
+	if licPath == "" {
+		licPath = c.licPath
+	}
 	license, err := c.DecryptDataFromFile(licPath)
 	if err != nil {
 		return err

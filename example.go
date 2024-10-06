@@ -1,4 +1,4 @@
-package ElstLic
+package main
 
 import (
 	"fmt"
