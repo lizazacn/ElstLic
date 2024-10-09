@@ -60,17 +60,28 @@ func GetLinuxMotherBoardID() string {
 	if err != nil {
 		return ""
 	}
-	var uuid string
+	var MotherBoardId string
 	compile, err := regexp.Compile(`Serial Number:(.+)\n`)
 	if err != nil {
 		return ""
 	}
 	find := compile.Find(result)
-	uuid = string(find)
-	uuid = strings.ReplaceAll(uuid, "Serial Number:", "")
-	uuid = strings.ReplaceAll(uuid, " ", "")
-	uuid = strings.ReplaceAll(uuid, "\n", "")
-	return uuid
+	MotherBoardId = string(find)
+	MotherBoardId = strings.ReplaceAll(MotherBoardId, "Serial Number:", "")
+	MotherBoardId = strings.ReplaceAll(MotherBoardId, " ", "")
+	MotherBoardId = strings.ReplaceAll(MotherBoardId, "\n", "")
+	if MotherBoardId == "" || MotherBoardId == "NotSpecified" {
+		compile, err = regexp.Compile(`UUID:(.+)\n`)
+		if err != nil {
+			return ""
+		}
+		find = compile.Find(result)
+		MotherBoardId = string(find)
+		MotherBoardId = strings.ReplaceAll(MotherBoardId, "UUID:", "")
+		MotherBoardId = strings.ReplaceAll(MotherBoardId, " ", "")
+		MotherBoardId = strings.ReplaceAll(MotherBoardId, "\n", "")
+	}
+	return MotherBoardId
 }
 
 // GetWinMotherBoardID 获取Windows主板ID
@@ -80,13 +91,13 @@ func GetWinMotherBoardID() string {
 	if err != nil {
 		return ""
 	}
-	var uuid string
-	uuid = string(result)
-	uuid = strings.ReplaceAll(uuid, "SerialNumber", "")
-	uuid = strings.ReplaceAll(uuid, " ", "")
-	uuid = strings.ReplaceAll(uuid, "\n", "")
-	uuid = strings.ReplaceAll(uuid, "\r", "")
-	return uuid
+	var MotherBoardId string
+	MotherBoardId = string(result)
+	MotherBoardId = strings.ReplaceAll(MotherBoardId, "SerialNumber", "")
+	MotherBoardId = strings.ReplaceAll(MotherBoardId, " ", "")
+	MotherBoardId = strings.ReplaceAll(MotherBoardId, "\n", "")
+	MotherBoardId = strings.ReplaceAll(MotherBoardId, "\r", "")
+	return MotherBoardId
 }
 
 // GetAllNetCardInfo 获取全部网卡信息

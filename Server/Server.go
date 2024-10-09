@@ -177,6 +177,7 @@ reInNodes:
 	if result == "" {
 		lic.CustomerTag = lic.MacAddr
 	}
+	lic.CheckStatus = true
 	return nil
 }
 

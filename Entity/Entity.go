@@ -16,7 +16,7 @@ type License struct {
 	CustomerTag       string      `json:"customer_tag"`        // 客户标记
 	ModelRoute        string      `json:"model_route"`         // 模块路由Prefix
 	CheckCode         string      `json:"check_code"`          // 校验码
-	LastCheckTime     time.Time   `json:"last_check_time"`     // 最后一次校验时间
+	LastCheckTime     *time.Time  `json:"last_check_time"`     // 最后一次校验时间
 	CheckStatus       bool        `json:"check_status"`        // 校验状态
 	NodeList          []*NodeInfo `json:"node_list"`           // 节点列表
 }

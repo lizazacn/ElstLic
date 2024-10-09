@@ -56,6 +56,8 @@ func (c *Client) createLicData() (*Entity.License, error) {
 		lic.MotherBoardID = ""
 	}
 
+	lic.ClientTimeZone = time.Local.String()
+
 	if lic.MotherBoardID == "" {
 		return nil, errors.New("未获取到主板ID")
 	}
@@ -239,11 +241,13 @@ func (c *Client) licCheck(lastRunTime time.Time, lic Lic) {
 		var now = time.Now()
 		if c.License.LastCheckTime.After(now) {
 			c.CheckStatus = false
+			c.License.CheckStatus = false
 			log.Println("请勿随意修改系统时间，否则会影响License授权！")
 			os.Exit(0)
 		}
 		if now.Sub(lastRunTime).Minutes()-float64(sleepTime) >= 30 {
 			c.CheckStatus = false
+			c.License.CheckStatus = false
 			log.Println("请勿随意修改系统时间，否则会影响License授权！")
 			os.Exit(0)
 		}
@@ -252,7 +256,7 @@ func (c *Client) licCheck(lastRunTime time.Time, lic Lic) {
 			os.Exit(0)
 		}
 		lastRunTime = now
-		c.License.LastCheckTime = now
+		c.License.LastCheckTime = &now
 		err := c.encryptDataToLicFile(c.License, c.licPath)
 		if err != nil {
 			return
